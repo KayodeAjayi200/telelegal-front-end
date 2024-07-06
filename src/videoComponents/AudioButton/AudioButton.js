@@ -4,7 +4,7 @@ import ActionButtonCaretDropdown from "../ActionButtonCaretDropdown";
 import getDevices from "../../webRTCutilities/getDevices";
 import updateCallStatus from "../../redux-elements/actions/updateCallStatus";
 import addStream from "../../redux-elements/actions/addStream"; 
-import startAudioStream from "./startAudioStream";
+import startAudioStream from "./startAudioStream";\
 
 const AudioButton = ({smallFeedEl})=> {
 
