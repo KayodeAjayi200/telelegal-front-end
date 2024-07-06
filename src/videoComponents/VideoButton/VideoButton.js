@@ -4,6 +4,8 @@ import { startTransition, useEffect, useState } from 'react';
 import startLocalVideoStream from "./startLocalVideoStream";
 import updateCallStatus from "../../redux-elements/actions/updateCallStatus";
 import getDevices from "../../webRTCutilities/getDevices";
+import addStream from "../../redux-elements/actions/addStream";
+import ActionButtonCaretDropdown from "../ActionButtonCaretDropdown";
 
 const VideoButton = ({smallFeedEl})=>{
 
@@ -15,15 +17,6 @@ const VideoButton = ({smallFeedEl})=>{
     const [caretOpen, setCaretOpen] = useState(false);
     const [videoDeviceList, setVideoDeviceList] = useState([]);
 
-    const DropDown =()=>{
-        return(
-            <div className="caret-dropdown" style={{top:"-25px"}}> 
-                <select defaultValue={1} onChange={changeVideoDevice}>
-                {videoDeviceList.map(vd=><option key={vd.deviceId} value={vd.deviceId}>{vd.label}</option>)}
-                </select>
-            </div>
-        )
-    }
 
     useEffect(()=>{
         const getDevicesAsync =  async()=>{
@@ -37,15 +30,28 @@ const VideoButton = ({smallFeedEl})=>{
         getDevicesAsync()
     },[caretOpen])
 
-    const changeVideoDevice =(e)=>{
+    const changeVideoDevice = async(e)=>{
         // the usr changed the desired video device
-        // 1. we need to get the device
+        // 1. we need to get the deviceId
         const deviceId = e.target.value;
+        //console.log(deviceId)
         // 2. we need getusermedia again (permission)
-        // 3. update redux with that videoDevice
+        const newConstraints = {
+            audio: callStatus.audioDevice === "default"? true: {deviceId: {exact: callStatus.audioDevice}},
+            video: {deviceId: {exact: deviceId}}
+        }
+        const stream = await navigator.mediaDevices.getUserMedia(newConstraints)
+        // 3. update redux with that videoDevice, and that video is enabled
+        dispatch(updateCallStatus('videoDevice',deviceId));
+        dispatch(updateCallStatus('video', 'enabled'))
         //4. update the smallFeedEl
-        // 5. add tracks
-
+        smallFeedEl.current.srcObject = stream;
+        //5. we need to update the localstream in streams
+        dispatch(addStream('localStream', stream))
+        //6. add tracks
+        const tracks  = stream.getVideoTracks();
+        // come back to this later
+        // if we stop the old tracks, and add the new tracks, that will mean renogatiation
     }
     const startStopVideo = ()=>{
         // first, check if the video is enabled, if so disable it
@@ -96,7 +102,12 @@ const VideoButton = ({smallFeedEl})=>{
             <i className="fa fa-video"></i>
             <div className="btn-text">{callStatus.video === "enabled" ? "Stop" : "Start"} Video</div>
         </div>
-        {caretOpen? <DropDown/>:<></>}
+        {caretOpen? <ActionButtonCaretDropdown 
+                        defaultValue={callStatus.videoDevice}
+                        changeHandler={ changeVideoDevice}
+                        deviceList={videoDeviceList}
+                        type = "video"
+                    />:<></>}
         </div>
     )
 }
